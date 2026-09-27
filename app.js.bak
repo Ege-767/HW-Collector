@@ -1,0 +1,101 @@
+(function(){
+  const D=window.HW_DATA||{cars:[],cases:[],blog:[]};
+  const root=document.body;
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const cars=()=>D.cars;
+  const img=(c)=>c.image?`<img src="${esc(c.image)}" alt="${esc(c.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">`:'';
+  const visual=c=>`<div class="car-image">${c.special?'<span class="badge sth">★ STH</span>':`<span class="badge">${esc(c.type)}</span>`}${img(c)}<span class="placeholder" style="${c.image?'display:none':''}">HW<br>COLLECTOR</span></div>`;
+  const card=c=>`<article class="car-card"><a href="car.html?id=${encodeURIComponent(c.id)}">${visual(c)}<div class="car-body"><div class="brand">${esc(c.brand)}</div><div class="car-title">${esc(c.name)}</div><div class="meta"><span>${esc(c.year)}</span><span>•</span><span>${esc(c.series||'Collection')}</span></div><div class="case-strip"><span>${c.case?'CASE '+esc(c.case):'Koli belirtilmedi'}</span><strong>DETAY →</strong></div></div></a></article>`;
+  function nav(active){return `<header class="topbar"><div class="shell nav" id="nav"><a href="index.html" class="brandmark"><img class="logo" src="logo.png" alt="HW Collector"></a><button class="mobile-menu" aria-label="Menü" onclick="document.getElementById('nav').classList.toggle('open')">☰</button><nav class="navlinks"><a class="${active==='home'?'active':''}" href="index.html">Koleksiyon</a><a class="${active==='cases'?'active':''}" href="koli.html">Koliler</a><a class="${active==='blog'?'active':''}" href="blog.html">TH / STH Blog</a><a class="${active==='shipments'?'active':''}" href="sevkiyat.html">Sevkiyat</a></nav></div></header>`}
+  function footer(){return `<footer class="footer"><div class="shell footer-row"><div><strong>HW COLLECTOR</strong><br><span>Hot Wheels koleksiyonunun dijital garajı.</span></div><div>17 model · Public collection · Sevkiyat takvimi</div></div></footer>`}
+  function layout(content,active=''){root.innerHTML=nav(active)+content+footer();}
+  function home(){
+    layout(`<main>
+      <section class="hero"><div class="shell hero-grid"><div><div class="eyebrow"><i class="dot"></i> HW COLLECTOR</div><h1>Hot Wheels.<br><span>Tek yerde.</span></h1><p>Ferrari, Porsche, Mercedes ve daha fazlası. Koleksiyonunu modeller, markalar, koliler ve TH/STH içerikleriyle tek bir yerde keşfet.</p><div class="hero-actions"><a class="btn btn-primary" href="#collection">Koleksiyona git →</a><a class="btn btn-secondary" href="blog.html">TH / STH Blog</a></div></div><div class="hero-card"><small>MY COLLECTION</small><div class="stat-big">${cars().length}</div><div class="hero-stat-label">model koleksiyonda</div><div class="mini-grid"><div class="mini"><small>MARKA</small><strong>${new Set(cars().map(c=>c.brand)).size}</strong></div><div class="mini"><small>STH</small><strong>${cars().filter(c=>c.type==='STH').length}</strong></div></div></div></div></section>
+      <section class="section" id="collection"><div class="shell"><div class="section-head"><div><div class="eyebrow">MY COLLECTION</div><h2>Koleksiyon</h2><p>17 başlangıç modeli · Arama ve marka filtreleri.</p></div></div><div class="searchbar"><span>⌕</span><input id="search" placeholder="Araba, marka veya seri ara..." aria-label="Koleksiyonda ara"></div><div class="filters" id="filters"></div><div class="car-grid" id="cars"></div></div></section>
+      <section class="section section-soft"><div class="shell"><div class="section-head"><div><div class="eyebrow">CASE ORGANIZER</div><h2>Koliler</h2><p>Atanmış modeller ilgili kolide otomatik görünür.</p></div><a class="btn btn-secondary" href="koli.html">Tüm koliler →</a></div><div class="case-grid">${D.cases.map(x=>`<a class="case" href="koli.html?case=${x}">${x}<small>CASE</small></a>`).join('')}</div></div></section>
+      <section class="section section-soft"><div class="shell"><div class="section-head"><div><div class="eyebrow">STORE WATCH</div><h2>Mağaza sevkiyatları</h2><p>Topluluktan paylaşılan oyuncak sevkiyat notları.</p></div><a class="btn btn-secondary" href="sevkiyat.html">Takvimi aç →</a></div><div class="shipment-mini-grid">${(D.shipments||[]).slice(0,3).map(s=>`<a class="shipment-mini" href="sevkiyat.html"><strong>${esc(s.store)}</strong><span>${esc(s.items[0])}</span></a>`).join('')}</div></div></section>
+      <section class="section"><div class="shell"><div class="section-head"><div><div class="eyebrow">KNOWLEDGE</div><h2>TH / STH Blog</h2><p>Kısa koleksiyon rehberleri.</p></div><a class="btn btn-secondary" href="blog.html">Blogu aç →</a></div><div class="blog-grid">${D.blog.map(b=>`<a class="blog-card" href="blog.html#${b.id}"><div><div class="blog-tag">${esc(b.category)}</div><h3>${esc(b.title)}</h3><p>${esc(b.text)}</p></div><div class="blog-more">Yazıyı oku →</div></a>`).join('')}</div></div></section>
+    </main>`,'home');
+    const filterBox=document.getElementById('filters'),grid=document.getElementById('cars');
+    const brands=['Tümü',...new Set(cars().map(c=>c.brand))]; let active='Tümü';
+    filterBox.innerHTML=brands.map(b=>`<button class="chip ${b===active?'active':''}">${esc(b)}</button>`).join('');
+    const render=()=>{const q=(document.getElementById('search').value||'').toLowerCase().trim();const list=cars().filter(c=>(active==='Tümü'||c.brand===active)&&[c.name,c.brand,c.series,c.type].join(' ').toLowerCase().includes(q));grid.innerHTML=list.length?list.map(card).join(''):`<div class="empty" style="grid-column:1/-1">Aradığın model bulunamadı.</div>`};
+    filterBox.onclick=e=>{if(!e.target.matches('.chip'))return;active=e.target.textContent;filterBox.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));e.target.classList.add('active');render()};
+    document.getElementById('search').oninput=render;render();
+  }
+  function cases(){const q=new URLSearchParams(location.search).get('case');const list=cars();layout(`<main><section class="page-head"><div class="shell"><div class="eyebrow">CASE ORGANIZER</div><h1>Koliler</h1><p>Bir modele koli bilgisi verildiğinde ilgili Case altında otomatik görünür.</p></div></section><section class="section"><div class="shell">${q?`<div class="section-head"><div><div class="eyebrow">CASE ${esc(q)}</div><h2>${list.filter(c=>c.case===q).length} model</h2></div><a class="btn btn-secondary" href="koli.html">← Tüm koliler</a></div><div class="car-grid">${list.filter(c=>c.case===q).map(card).join('')||'<div class="empty" style="grid-column:1/-1">Bu koliye henüz model atanmadı.</div>'}</div>`:`<div class="case-grid">${D.cases.map(x=>`<a class="case" href="koli.html?case=${x}">${x}<small>${list.filter(c=>c.case===x).length} MODEL</small></a>`).join('')}</div>`}</div></section></main>`,'cases');}
+  function blog(){const selected=location.hash.slice(1);const b=D.blog.find(x=>x.id===selected);layout(`<main><section class="page-head"><div class="shell"><div class="eyebrow">KNOWLEDGE BASE</div><h1>TH / STH Blog</h1><p>Treasure Hunt ve Super Treasure Hunt dünyasını sade bir dille keşfet.</p></div></section><section class="section"><div class="shell">${b?`<article class="detail-panel blog-detail"><div class="blog-tag">${esc(b.category)}</div><h1>${esc(b.title)}</h1><div class="article-meta">${esc(b.date)} · ${esc(b.read)}</div><p class="lead">${esc(b.text)}</p><hr><p>Treasure Hunt ve Super Treasure Hunt modellerini tanımak için temel işaretlere, özel detaylara ve koleksiyon mantığına bakmak yeterli. Bu bölüm yeni içeriklerle genişletilebilir.</p><a class="btn btn-secondary" href="blog.html">← Tüm yazılar</a></article>`:`<div class="blog-grid">${D.blog.map(x=>`<a class="blog-card" href="blog.html#${x.id}"><div><div class="blog-tag">${esc(x.category)}</div><h3>${esc(x.title)}</h3><p>${esc(x.text)}</p></div><div class="blog-more">Yazıyı oku →</div></a>`).join('')}</div>`}</div></section></main>`,'blog');}
+  function detail(){const id=new URLSearchParams(location.search).get('id');const c=cars().find(x=>x.id===id);if(!c){layout(`<main><section class="section"><div class="shell"><div class="empty">Model bulunamadı. <a href="index.html#collection">Koleksiyona dön.</a></div></div></section></main>`);return}layout(`<main><section class="page-head"><div class="shell"><a class="back" href="index.html#collection">← Koleksiyona dön</a></div></section><section class="section"><div class="shell detail"><div class="detail-image">${visual(c)}</div><div class="detail-panel"><div class="brand">${esc(c.brand)}</div><h1>${esc(c.name)}</h1><div class="meta"><span>${esc(c.type)}</span><span>•</span><span>${esc(c.year)}</span></div>${c.special?`<div class="sth-label">★ ${esc(c.special)}</div>`:''}<div class="info-grid"><div class="info"><span>Seri</span><strong>${esc(c.series||'Belirtilmedi')}</strong></div><div class="info"><span>Koli</span><strong>${c.case?'CASE '+esc(c.case):'Belirtilmedi'}</strong></div><div class="info"><span>Marka</span><strong>${esc(c.brand)}</strong></div><div class="info"><span>Durum</span><strong class="owned">✓ Koleksiyonda</strong></div></div></div></div></section></main>`);}
+  function shipments(){const list=D.shipments||[];layout(`<main><section class="page-head"><div class="shell"><div class="eyebrow">STORE WATCH</div><h1>Mağaza Sevkiyat Takvimi</h1><p>Topluluk tarafından paylaşılan mağaza sevkiyat ve aktüel günleri. Aşağıdaki notlar paylaşılan ekran görüntülerindeki takvime aittir.</p></div></section><section class="section"><div class="shell"><div class="notice"><strong>Bilgi:</strong> Sevkiyat günleri mağazaya, bölgeye ve stok durumuna göre değişebilir. Bu liste garanti edilen stok bilgisi değildir.</div><div class="shipment-grid">${list.map(s=>`<article class="shipment-card ${esc(s.tone)}"><div class="shipment-top"><span class="store-dot"></span><h2>${esc(s.store)}</h2></div><ul>${s.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></article>`).join('')}</div><div class="community-box"><div><div class="eyebrow">TOPLULUK</div><h2>Yeni sevkiyat bilgisi paylaş</h2><p>Mağazada yeni bir oyuncak sevkiyatı gördüysen topluluğa bildirebilirsin.</p></div><a class="btn btn-primary" target="_blank" rel="noopener" href="https://docs.google.com/forms/d/e/1FAIpQLSdqxETdUmKZW3ihXMTeGjALTvBWjfH7SjZkyWSBgFr3gzIKRg/viewform">Formu aç →</a></div></div></section></main>`,'shipments');}
+  function admin(){
+    const AUTH_KEY='hwcollector_admin_auth_v1';
+    const FAIL_KEY='hwcollector_admin_failures_v1';
+    const BLOCK_KEY='hwcollector_admin_blocked_v1';
+    const PASSWORD='234123';
+    const get=(key, fallback)=>{try{const v=localStorage.getItem(key);return v===null?fallback:v}catch(e){return fallback}};
+    const set=(key,value)=>{try{localStorage.setItem(key,String(value))}catch(e){}};
+    const remove=(key)=>{try{localStorage.removeItem(key)}catch(e){}};
+    const blocked=get(BLOCK_KEY,'0')==='1';
+    const authed=get(AUTH_KEY,'0')==='1';
+    layout(`<main class="admin-page">
+      <section class="page-head"><div class="shell"><div class="eyebrow">PRIVATE AREA</div><h1>Yönetim</h1><p>Bu alan yalnızca koleksiyon yöneticisi içindir.</p></div></section>
+      <section class="section"><div class="shell">
+        <div class="admin-gate ${authed&&!blocked?'is-authenticated':''}">
+          <div class="admin-gate-icon">${blocked?'⛔':'🔐'}</div>
+          <div class="eyebrow">ADMIN ACCESS</div>
+          <h2>${blocked?'Erişim geçici olarak engellendi':'Yönetim paneli kilitli'}</h2>
+          <p id="adminGateText">${blocked?'3 yanlış şifre denemesi nedeniyle bu tarayıcıdan admin erişimi engellendi.':'Devam etmek için sol alttaki kilit düğmesine tıklayın ve yönetici şifresini girin.'}</p>
+          ${!blocked?'<button class="btn btn-primary" id="adminOpen">Kilidi aç</button>':'<a class="btn btn-secondary" href="index.html">Koleksiyona dön →</a>'}
+        </div>
+        <div class="admin-content" id="adminContent" ${authed&&!blocked?'':'hidden'}>
+          <div class="locked"><div class="lock-icon">✓</div><h2>Admin erişimi açık</h2><p>Bu statik sürümde yönetim alanı yalnızca erişim kapısı ile korunur. Kalıcı veri düzenleme için sunucu taraflı hesap ve veritabanı gerekir.</p><a class="btn btn-primary" href="index.html">Koleksiyona dön →</a></div>
+        </div>
+      </div></section>
+      ${!blocked?'<button class="admin-lock-fab" id="adminLockFab" aria-label="Admin kilidini aç" title="Admin kilidi">🔒</button>':''}
+      <div class="admin-modal" id="adminModal" hidden>
+        <div class="admin-modal-backdrop" data-close-admin></div>
+        <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+          <button class="admin-modal-close" data-close-admin aria-label="Kapat">×</button>
+          <div class="admin-modal-icon">🔒</div><div class="eyebrow">ADMIN ACCESS</div>
+          <h2 id="adminModalTitle">Yönetici şifresi</h2>
+          <p>6 haneli sayısal şifreyi girin.</p>
+          <form id="adminLoginForm" autocomplete="off">
+            <input id="adminPassword" class="admin-password" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" minlength="6" placeholder="••••••" aria-label="Yönetici şifresi" required>
+            <div class="admin-error" id="adminError" aria-live="polite"></div>
+            <button class="btn btn-primary admin-submit" type="submit">Giriş yap</button>
+          </form>
+        </div>
+      </div>
+    </main>`);
+
+    const modal=document.getElementById('adminModal');
+    const input=document.getElementById('adminPassword');
+    const error=document.getElementById('adminError');
+    const open=()=>{if(!modal)return;modal.hidden=false;document.body.classList.add('modal-open');setTimeout(()=>input?.focus(),50)};
+    const close=()=>{if(!modal)return;modal.hidden=true;document.body.classList.remove('modal-open');if(input)input.value='';if(error)error.textContent=''};
+    document.getElementById('adminLockFab')?.addEventListener('click',open);
+    document.getElementById('adminOpen')?.addEventListener('click',open);
+    modal?.querySelectorAll('[data-close-admin]').forEach(el=>el.addEventListener('click',close));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')close()},{once:false});
+    input?.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,6);if(error)error.textContent=''});
+    document.getElementById('adminLoginForm')?.addEventListener('submit',e=>{
+      e.preventDefault();
+      if(get(BLOCK_KEY,'0')==='1'){close();return;}
+      if(input.value===PASSWORD){
+        set(AUTH_KEY,'1');remove(FAIL_KEY);close();
+        const gate=document.querySelector('.admin-gate');const content=document.getElementById('adminContent');
+        if(gate)gate.classList.add('is-authenticated');if(content)content.hidden=false;
+        if(gate){const title=gate.querySelector('h2');const text=gate.querySelector('#adminGateText');const button=gate.querySelector('#adminOpen');if(title)title.textContent='Yönetim paneli açık';if(text)text.textContent='Admin erişimi doğrulandı.';if(button)button.remove();}
+        document.getElementById('adminLockFab')?.remove();
+        return;
+      }
+      const failures=Number(get(FAIL_KEY,'0'))+1;set(FAIL_KEY,failures);
+      if(failures>=3){set(BLOCK_KEY,'1');remove(AUTH_KEY);close();location.reload();return;}
+      if(error)error.textContent=`Hatalı şifre. Kalan deneme hakkı: ${3-failures}`;
+      input.value='';input.focus();
+    });
+  }
+  const p=location.pathname.split('/').pop()||'index.html';
+  if(p==='index.html')home(); else if(p==='koli.html')cases(); else if(p==='blog.html')blog(); else if(p==='sevkiyat.html')shipments(); else if(p==='admin.html')admin(); else if(p==='car.html')detail(); else home();
+})();

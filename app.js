@@ -1,0 +1,156 @@
+(function(){
+  let D=window.HW_DATA||{cars:[],cases:[],blog:[]};
+  try{const saved=localStorage.getItem('hwcollector_site_data_v2');if(saved){const parsed=JSON.parse(saved);if(parsed&&Array.isArray(parsed.cars)&&Array.isArray(parsed.cases)&&Array.isArray(parsed.blog)){D=parsed;window.HW_DATA=D}}}catch(e){}
+  const root=document.body;
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const cars=()=>D.cars;
+  const img=(c)=>c.image?`<img src="${esc(c.image)}" alt="${esc(c.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">`:'';
+  const visual=c=>`<div class="car-image">${c.special?'<span class="badge sth">★ STH</span>':`<span class="badge">${esc(c.type)}</span>`}${img(c)}<span class="placeholder" style="${c.image?'display:none':''}">HW<br>COLLECTOR</span></div>`;
+  const card=c=>`<article class="car-card"><a href="car.html?id=${encodeURIComponent(c.id)}">${visual(c)}<div class="car-body"><div class="brand">${esc(c.brand)}</div><div class="car-title">${esc(c.name)}</div><div class="meta"><span>${esc(c.year)}</span><span>•</span><span>${esc(c.series||'Collection')}</span></div><div class="case-strip"><span>${c.case?'CASE '+esc(c.case):'Koli belirtilmedi'}</span><strong>DETAY →</strong></div></div></a></article>`;
+  function nav(active){return `<header class="topbar"><div class="shell nav" id="nav"><a href="index.html" class="brandmark"><img class="logo" src="logo.png" alt="HW Collector"></a><button class="mobile-menu" aria-label="Menü" onclick="document.getElementById('nav').classList.toggle('open')">☰</button><nav class="navlinks"><a class="${active==='home'?'active':''}" href="index.html">Koleksiyon</a><a class="${active==='cases'?'active':''}" href="koli.html">Koliler</a><a class="${active==='blog'?'active':''}" href="blog.html">TH / STH Blog</a><a class="${active==='shipments'?'active':''}" href="sevkiyat.html">Sevkiyat</a></nav></div></header>`}
+  function footer(){return `<footer class="footer"><div class="shell footer-row"><div><strong>HW COLLECTOR</strong><br><span>Hot Wheels koleksiyonunun dijital garajı.</span></div><div>17 model · Public collection · Sevkiyat takvimi</div></div></footer>`}
+  function layout(content,active=''){root.innerHTML=nav(active)+content+footer();}
+  function home(){
+    layout(`<main>
+      <section class="hero"><div class="shell hero-grid"><div><div class="eyebrow"><i class="dot"></i> HW COLLECTOR</div><h1>Hot Wheels.<br><span>Tek yerde.</span></h1><p>Ferrari, Porsche, Mercedes ve daha fazlası. Koleksiyonunu modeller, markalar, koliler ve TH/STH içerikleriyle tek bir yerde keşfet.</p><div class="hero-actions"><a class="btn btn-primary" href="#collection">Koleksiyona git →</a><a class="btn btn-secondary" href="blog.html">TH / STH Blog</a></div></div><div class="hero-card"><small>MY COLLECTION</small><div class="stat-big">${cars().length}</div><div class="hero-stat-label">model koleksiyonda</div><div class="mini-grid"><div class="mini"><small>MARKA</small><strong>${new Set(cars().map(c=>c.brand)).size}</strong></div><div class="mini"><small>STH</small><strong>${cars().filter(c=>c.type==='STH').length}</strong></div></div></div></div></section>
+      <section class="section" id="collection"><div class="shell"><div class="section-head"><div><div class="eyebrow">MY COLLECTION</div><h2>Koleksiyon</h2><p>17 başlangıç modeli · Arama ve marka filtreleri.</p></div></div><div class="searchbar"><span>⌕</span><input id="search" placeholder="Araba, marka veya seri ara..." aria-label="Koleksiyonda ara"></div><div class="filters" id="filters"></div><div class="car-grid" id="cars"></div></div></section>
+      <section class="section section-soft"><div class="shell"><div class="section-head"><div><div class="eyebrow">CASE ORGANIZER</div><h2>Koliler</h2><p>Atanmış modeller ilgili kolide otomatik görünür.</p></div><a class="btn btn-secondary" href="koli.html">Tüm koliler →</a></div><div class="case-grid">${D.cases.map(x=>`<a class="case" href="koli.html?case=${x}">${x}<small>CASE</small></a>`).join('')}</div></div></section>
+      <section class="section section-soft"><div class="shell"><div class="section-head"><div><div class="eyebrow">STORE WATCH</div><h2>Mağaza sevkiyatları</h2><p>Topluluktan paylaşılan oyuncak sevkiyat notları.</p></div><a class="btn btn-secondary" href="sevkiyat.html">Takvimi aç →</a></div><div class="shipment-mini-grid">${(D.shipments||[]).slice(0,3).map(s=>`<a class="shipment-mini" href="sevkiyat.html"><strong>${esc(s.store)}</strong><span>${esc(s.items[0])}</span></a>`).join('')}</div></div></section>
+      <section class="section"><div class="shell"><div class="section-head"><div><div class="eyebrow">KNOWLEDGE</div><h2>TH / STH Blog</h2><p>Kısa koleksiyon rehberleri.</p></div><a class="btn btn-secondary" href="blog.html">Blogu aç →</a></div><div class="blog-grid">${D.blog.map(b=>`<a class="blog-card" href="blog.html#${b.id}"><div><div class="blog-tag">${esc(b.category)}</div><h3>${esc(b.title)}</h3><p>${esc(b.text)}</p></div><div class="blog-more">Yazıyı oku →</div></a>`).join('')}</div></div></section>
+    </main>`,'home');
+    const filterBox=document.getElementById('filters'),grid=document.getElementById('cars');
+    const brands=['Tümü',...new Set(cars().map(c=>c.brand))]; let active='Tümü';
+    filterBox.innerHTML=brands.map(b=>`<button class="chip ${b===active?'active':''}">${esc(b)}</button>`).join('');
+    const render=()=>{const q=(document.getElementById('search').value||'').toLowerCase().trim();const list=cars().filter(c=>(active==='Tümü'||c.brand===active)&&[c.name,c.brand,c.series,c.type].join(' ').toLowerCase().includes(q));grid.innerHTML=list.length?list.map(card).join(''):`<div class="empty" style="grid-column:1/-1">Aradığın model bulunamadı.</div>`};
+    filterBox.onclick=e=>{if(!e.target.matches('.chip'))return;active=e.target.textContent;filterBox.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));e.target.classList.add('active');render()};
+    document.getElementById('search').oninput=render;render();
+  }
+  function cases(){const q=new URLSearchParams(location.search).get('case');const list=cars();layout(`<main><section class="page-head"><div class="shell"><div class="eyebrow">CASE ORGANIZER</div><h1>Koliler</h1><p>Bir modele koli bilgisi verildiğinde ilgili Case altında otomatik görünür.</p></div></section><section class="section"><div class="shell">${q?`<div class="section-head"><div><div class="eyebrow">CASE ${esc(q)}</div><h2>${list.filter(c=>c.case===q).length} model</h2></div><a class="btn btn-secondary" href="koli.html">← Tüm koliler</a></div><div class="car-grid">${list.filter(c=>c.case===q).map(card).join('')||'<div class="empty" style="grid-column:1/-1">Bu koliye henüz model atanmadı.</div>'}</div>`:`<div class="case-grid">${D.cases.map(x=>`<a class="case" href="koli.html?case=${x}">${x}<small>${list.filter(c=>c.case===x).length} MODEL</small></a>`).join('')}</div>`}</div></section></main>`,'cases');}
+  function blog(){const selected=location.hash.slice(1);const b=D.blog.find(x=>x.id===selected);layout(`<main><section class="page-head"><div class="shell"><div class="eyebrow">KNOWLEDGE BASE</div><h1>TH / STH Blog</h1><p>Treasure Hunt ve Super Treasure Hunt dünyasını sade bir dille keşfet.</p></div></section><section class="section"><div class="shell">${b?`<article class="detail-panel blog-detail"><div class="blog-tag">${esc(b.category)}</div><h1>${esc(b.title)}</h1><div class="article-meta">${esc(b.date)} · ${esc(b.read)}</div><p class="lead">${esc(b.text)}</p><hr><p>Treasure Hunt ve Super Treasure Hunt modellerini tanımak için temel işaretlere, özel detaylara ve koleksiyon mantığına bakmak yeterli. Bu bölüm yeni içeriklerle genişletilebilir.</p><a class="btn btn-secondary" href="blog.html">← Tüm yazılar</a></article>`:`<div class="blog-grid">${D.blog.map(x=>`<a class="blog-card" href="blog.html#${x.id}"><div><div class="blog-tag">${esc(x.category)}</div><h3>${esc(x.title)}</h3><p>${esc(x.text)}</p></div><div class="blog-more">Yazıyı oku →</div></a>`).join('')}</div>`}</div></section></main>`,'blog');}
+  function detail(){const id=new URLSearchParams(location.search).get('id');const c=cars().find(x=>x.id===id);if(!c){layout(`<main><section class="section"><div class="shell"><div class="empty">Model bulunamadı. <a href="index.html#collection">Koleksiyona dön.</a></div></div></section></main>`);return}layout(`<main><section class="page-head"><div class="shell"><a class="back" href="index.html#collection">← Koleksiyona dön</a></div></section><section class="section"><div class="shell detail"><div class="detail-image">${visual(c)}</div><div class="detail-panel"><div class="brand">${esc(c.brand)}</div><h1>${esc(c.name)}</h1><div class="meta"><span>${esc(c.type)}</span><span>•</span><span>${esc(c.year)}</span></div>${c.special?`<div class="sth-label">★ ${esc(c.special)}</div>`:''}<div class="info-grid"><div class="info"><span>Seri</span><strong>${esc(c.series||'Belirtilmedi')}</strong></div><div class="info"><span>Koli</span><strong>${c.case?'CASE '+esc(c.case):'Belirtilmedi'}</strong></div><div class="info"><span>Marka</span><strong>${esc(c.brand)}</strong></div><div class="info"><span>Durum</span><strong class="owned">✓ Koleksiyonda</strong></div></div></div></div></section></main>`);}
+  function shipments(){const list=D.shipments||[];layout(`<main><section class="page-head"><div class="shell"><div class="eyebrow">STORE WATCH</div><h1>Mağaza Sevkiyat Takvimi</h1><p>Topluluk tarafından paylaşılan mağaza sevkiyat ve aktüel günleri. Aşağıdaki notlar paylaşılan ekran görüntülerindeki takvime aittir.</p></div></section><section class="section"><div class="shell"><div class="notice"><strong>Bilgi:</strong> Sevkiyat günleri mağazaya, bölgeye ve stok durumuna göre değişebilir. Bu liste garanti edilen stok bilgisi değildir.</div><div class="shipment-grid">${list.map(s=>`<article class="shipment-card ${esc(s.tone)}"><div class="shipment-top"><span class="store-dot"></span><h2>${esc(s.store)}</h2></div><ul>${s.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></article>`).join('')}</div><div class="community-box"><div><div class="eyebrow">TOPLULUK</div><h2>Yeni sevkiyat bilgisi paylaş</h2><p>Mağazada yeni bir oyuncak sevkiyatı gördüysen topluluğa bildirebilirsin.</p></div><a class="btn btn-primary" target="_blank" rel="noopener" href="https://docs.google.com/forms/d/e/1FAIpQLSdqxETdUmKZW3ihXMTeGjALTvBWjfH7SjZkyWSBgFr3gzIKRg/viewform">Formu aç →</a></div></div></section></main>`,'shipments');}
+  function admin(){
+    const AUTH_KEY='hwcollector_admin_auth_v1';
+    const FAIL_KEY='hwcollector_admin_failures_v1';
+    const BLOCK_KEY='hwcollector_admin_blocked_v1';
+    const DATA_KEY='hwcollector_site_data_v2';
+    const PASSWORD='234123';
+    const get=(key, fallback)=>{try{const v=localStorage.getItem(key);return v===null?fallback:v}catch(e){return fallback}};
+    const set=(key,value)=>{try{localStorage.setItem(key,String(value));return true}catch(e){return false}};
+    const remove=(key)=>{try{localStorage.removeItem(key)}catch(e){}};
+    const saveData=()=>{try{localStorage.setItem(DATA_KEY,JSON.stringify(D));return true}catch(e){alert('Veri kaydedilemedi. Tarayıcı depolama alanı dolmuş olabilir.');return false}};
+    const slugify=s=>String(s||'').toLowerCase().trim().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    const blocked=get(BLOCK_KEY,'0')==='1';
+    const authed=get(AUTH_KEY,'0')==='1';
+    const fresh=()=>JSON.parse(JSON.stringify(D));
+    let selectedId='';
+    let pendingImage='';
+
+    layout(`<main class="admin-page">
+      <section class="page-head"><div class="shell"><div class="eyebrow">PRIVATE AREA</div><h1>Yönetim</h1><p>Koleksiyon, görseller, koliler, blog ve sevkiyat içeriklerini buradan yönet.</p></div></section>
+      <section class="section"><div class="shell">
+        <div class="admin-gate ${authed&&!blocked?'is-authenticated':''}">
+          <div class="admin-gate-icon">${blocked?'⛔':'🔐'}</div>
+          <div class="eyebrow">ADMIN ACCESS</div>
+          <h2>${blocked?'Erişim engellendi':authed?'Yönetim paneli açık':'Yönetim paneli kilitli'}</h2>
+          <p id="adminGateText">${blocked?'3 yanlış şifre denemesi nedeniyle bu tarayıcıdan admin erişimi engellendi.':authed?'Değişiklikler bu tarayıcıda anında görünür. Yayına almak için veri dosyasını dışa aktarabilirsin.':'Devam etmek için sol alttaki kilit düğmesine tıklayın ve yönetici şifresini girin.'}</p>
+          ${!blocked&&!authed?'<button class="btn btn-primary" id="adminOpen">Kilidi aç</button>':''}
+        </div>
+        <div class="admin-content" id="adminContent" ${authed&&!blocked?'':'hidden'}>
+          <div class="admin-toolbar">
+            <div><div class="eyebrow">CONTENT MANAGER</div><h2>Siteyi düzenle</h2><p>Buradaki değişiklikler aynı tarayıcıda siteye hemen yansır.</p></div>
+            <div class="admin-toolbar-actions"><button class="btn btn-secondary" id="exportData">data.js indir</button><button class="btn btn-secondary" id="resetData">Yerel değişiklikleri sıfırla</button><button class="btn btn-primary" id="adminLogout">Kilitle</button></div>
+          </div>
+          <div class="admin-stats"><div><strong id="adminCarCount">0</strong><span>Model</span></div><div><strong id="adminCaseCount">0</strong><span>Koli</span></div><div><strong id="adminBlogCount">0</strong><span>Blog</span></div><div><strong id="adminShipmentCount">0</strong><span>Mağaza</span></div></div>
+
+          <section class="admin-editor-card">
+            <div class="admin-editor-head"><div><div class="eyebrow">01 · KOLEKSİYON</div><h3>Araba modeli</h3></div><button class="btn btn-secondary" id="newCar">+ Yeni model</button></div>
+            <div class="admin-two-col">
+              <div class="admin-list-panel"><div class="admin-list" id="carList"></div></div>
+              <form class="admin-form" id="carForm">
+                <input type="hidden" id="carId">
+                <div class="admin-form-grid">
+                  <label>Model adı<input id="carName" required placeholder="Ferrari F40"></label>
+                  <label>Marka<input id="carBrand" required placeholder="Ferrari"></label>
+                  <label>Tip<select id="carType"><option>Mainline</option><option>Premium</option><option>5-Pack</option><option>STH</option><option>TH</option></select></label>
+                  <label>Yıl<input id="carYear" type="number" min="1990" max="2100" value="2026"></label>
+                  <label>Seri<input id="carSeries" placeholder="Ferrari / Premium / Factory Fresh"></label>
+                  <label>Koli<select id="carCase"><option value="">Belirtilmedi</option>${D.cases.map(x=>`<option value="${esc(x)}">CASE ${esc(x)}</option>`).join('')}</select></label>
+                </div>
+                <label>Özel not<input id="carSpecial" placeholder="SUPER TREASURE HUNT"></label>
+                <label>Görsel URL'si<input id="carImageUrl" placeholder="https://.../araba.jpg"></label>
+                <div class="image-drop" id="imageDrop"><input id="carImageFile" type="file" accept="image/*" hidden><div class="image-drop-icon">＋</div><strong>Araba görselini buraya sürükle</strong><span>veya tıklayıp bilgisayardan seç · JPG / PNG / WEBP</span><div class="image-preview" id="imagePreview"></div></div>
+                <div class="admin-form-actions"><button class="btn btn-secondary" type="button" id="clearCar">Temizle</button><button class="admin-danger-btn" type="button" id="deleteCar">Modeli sil</button><button class="btn btn-primary" type="submit">Modeli kaydet</button></div>
+              </form>
+            </div>
+          </section>
+
+          <section class="admin-editor-card">
+            <div class="admin-editor-head"><div><div class="eyebrow">02 · KOLİLER</div><h3>Case / koli yönetimi</h3></div></div>
+            <div class="case-manager" id="caseManager"></div>
+            <div class="admin-inline-form"><input id="newCaseInput" maxlength="3" placeholder="Yeni koli, örn. R"><button class="btn btn-primary" id="addCase">Koli ekle</button></div>
+          </section>
+
+          <section class="admin-editor-card">
+            <div class="admin-editor-head"><div><div class="eyebrow">03 · BLOG</div><h3>Blog yazıları</h3></div><button class="btn btn-secondary" id="newBlog">+ Yeni yazı</button></div>
+            <div class="admin-two-col compact"><div class="admin-list-panel"><div class="admin-list" id="blogList"></div></div><form class="admin-form" id="blogForm"><input type="hidden" id="blogId"><label>Başlık<input id="blogTitle" required></label><div class="admin-form-grid"><label>Kategori<input id="blogCategory" placeholder="TH / STH"></label><label>Tarih<input id="blogDate" type="date"></label><label>Okuma süresi<input id="blogRead" placeholder="4 dk"></label><label>Kapak etiketi<input id="blogHero" placeholder="STH"></label></div><label>Kısa açıklama<textarea id="blogText" rows="5"></textarea></label><div class="admin-form-actions"><button class="btn btn-secondary" type="button" id="clearBlog">Temizle</button><button class="admin-danger-btn" type="button" id="deleteBlog">Yazıyı sil</button><button class="btn btn-primary" type="submit">Yazıyı kaydet</button></div></form></div>
+          </section>
+
+          <section class="admin-editor-card">
+            <div class="admin-editor-head"><div><div class="eyebrow">04 · SEVKİYAT</div><h3>Mağaza sevkiyatları</h3></div></div>
+            <div id="shipmentManager" class="shipment-admin-list"></div>
+          </section>
+        </div>
+      </section></main>
+      ${!blocked?'<button class="admin-lock-fab" id="adminLockFab" aria-label="Admin kilidini aç" title="Admin kilidi">🔒</button>':''}
+      <div class="admin-modal" id="adminModal" hidden><div class="admin-modal-backdrop" data-close-admin></div><div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle"><button class="admin-modal-close" data-close-admin aria-label="Kapat">×</button><div class="admin-modal-icon">🔒</div><div class="eyebrow">ADMIN ACCESS</div><h2 id="adminModalTitle">Yönetici şifresi</h2><p>6 haneli sayısal şifreyi girin.</p><form id="adminLoginForm" autocomplete="off"><input id="adminPassword" class="admin-password" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" minlength="6" placeholder="••••••" aria-label="Yönetici şifresi" required><div class="admin-error" id="adminError" aria-live="polite"></div><button class="btn btn-primary admin-submit" type="submit">Giriş yap</button></form></div></div>`);
+
+    const modal=document.getElementById('adminModal'), input=document.getElementById('adminPassword'), error=document.getElementById('adminError');
+    const open=()=>{if(!modal)return;modal.hidden=false;document.body.classList.add('modal-open');setTimeout(()=>input?.focus(),50)};
+    const close=()=>{if(!modal)return;modal.hidden=true;document.body.classList.remove('modal-open');if(input)input.value='';if(error)error.textContent=''};
+    document.getElementById('adminLockFab')?.addEventListener('click',open); document.getElementById('adminOpen')?.addEventListener('click',open); modal?.querySelectorAll('[data-close-admin]').forEach(el=>el.addEventListener('click',close));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+    input?.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,6);if(error)error.textContent=''});
+    document.getElementById('adminLoginForm')?.addEventListener('submit',e=>{e.preventDefault();if(get(BLOCK_KEY,'0')==='1'){close();return;}if(input.value===PASSWORD){set(AUTH_KEY,'1');remove(FAIL_KEY);close();location.reload();return;}const failures=Number(get(FAIL_KEY,'0'))+1;set(FAIL_KEY,failures);if(failures>=3){set(BLOCK_KEY,'1');remove(AUTH_KEY);close();location.reload();return;}if(error)error.textContent=`Hatalı şifre. Kalan deneme hakkı: ${3-failures}`;input.value='';input.focus()});
+
+    if(!(authed&&!blocked)) return;
+
+    const els={id:document.getElementById('carId'),name:document.getElementById('carName'),brand:document.getElementById('carBrand'),type:document.getElementById('carType'),year:document.getElementById('carYear'),series:document.getElementById('carSeries'),case:document.getElementById('carCase'),special:document.getElementById('carSpecial'),image:document.getElementById('carImageUrl'),file:document.getElementById('carImageFile'),drop:document.getElementById('imageDrop'),preview:document.getElementById('imagePreview')};
+    const updateStats=()=>{document.getElementById('adminCarCount').textContent=D.cars.length;document.getElementById('adminCaseCount').textContent=D.cases.length;document.getElementById('adminBlogCount').textContent=D.blog.length;document.getElementById('adminShipmentCount').textContent=(D.shipments||[]).length};
+    const renderCarList=()=>{document.getElementById('carList').innerHTML=D.cars.map(c=>`<button type="button" class="admin-list-item ${selectedId===c.id?'active':''}" data-car-id="${esc(c.id)}"><span class="admin-thumb">${c.image?`<img src="${esc(c.image)}" alt="">`:'🚗'}</span><span><strong>${esc(c.name)}</strong><small>${esc(c.brand)} · ${esc(c.type)}</small></span><b>›</b></button>`).join('')||'<div class="empty">Henüz model yok.</div>';document.querySelectorAll('[data-car-id]').forEach(b=>b.addEventListener('click',()=>loadCar(b.dataset.carId)))};
+    const setPreview=src=>{pendingImage=src||'';els.preview.innerHTML=src?`<img src="${esc(src)}" alt="Önizleme"><button type="button" class="image-remove" id="removeImage">×</button>`:'';document.getElementById('removeImage')?.addEventListener('click',()=>{pendingImage='';els.image.value='';setPreview('')})};
+    const clearCar=()=>{selectedId='';pendingImage='';document.getElementById('carForm').reset();els.id.value='';els.year.value='2026';setPreview('');renderCarList()};
+    const loadCar=id=>{const c=D.cars.find(x=>x.id===id);if(!c)return;selectedId=id;els.id.value=c.id;els.name.value=c.name||'';els.brand.value=c.brand||'';els.type.value=c.type||'Mainline';els.year.value=c.year||2026;els.series.value=c.series||'';els.case.value=c.case||'';els.special.value=c.special||'';els.image.value=c.image&& !c.image.startsWith('data:')?c.image:'';setPreview(c.image||'');renderCarList()};
+    const readImage=file=>new Promise((resolve,reject)=>{if(!file||!file.type.startsWith('image/'))return reject(new Error('Görsel dosyası seçin.'));const reader=new FileReader();reader.onload=()=>{const im=new Image();im.onload=()=>{const max=1200;const scale=Math.min(1,max/Math.max(im.width,im.height));const canvas=document.createElement('canvas');canvas.width=Math.round(im.width*scale);canvas.height=Math.round(im.height*scale);canvas.getContext('2d').drawImage(im,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.82))};im.onerror=reject;im.src=reader.result};reader.onerror=reject;reader.readAsDataURL(file)});
+    const dropImage=e=>{e.preventDefault();els.drop.classList.remove('dragover');const f=e.dataTransfer?.files?.[0];if(f)readImage(f).then(src=>{setPreview(src);els.image.value=''}).catch(()=>{})};
+    ['dragenter','dragover'].forEach(ev=>els.drop.addEventListener(ev,e=>{e.preventDefault();els.drop.classList.add('dragover')}));['dragleave','drop'].forEach(ev=>els.drop.addEventListener(ev,e=>{if(ev==='drop')dropImage(e);else els.drop.classList.remove('dragover')}));
+    els.drop.addEventListener('click',()=>els.file.click());els.file.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)readImage(f).then(setPreview).catch(()=>{})});
+    document.getElementById('carImageUrl').addEventListener('input',e=>{if(e.target.value.trim())setPreview(e.target.value.trim())});
+    document.getElementById('carForm').addEventListener('submit',e=>{e.preventDefault();const name=els.name.value.trim();if(!name)return;const id=els.id.value.trim()||`${slugify(name)}-${Date.now().toString(36)}`;const existing=D.cars.find(x=>x.id===id);const image=pendingImage||els.image.value.trim();const item={id,name,brand:els.brand.value.trim(),type:els.type.value,year:Number(els.year.value)||2026,series:els.series.value.trim(),status:'owned',case:els.case.value,special:els.special.value.trim(),image};if(existing)Object.assign(existing,item);else D.cars.unshift(item);saveData();selectedId=id;renderCarList();updateStats();loadCar(id);alert('Model kaydedildi. Siteyi aynı tarayıcıda yenilediğinde güncel görsel ve bilgiler görünür.');});
+    document.getElementById('newCar').addEventListener('click',clearCar);document.getElementById('clearCar').addEventListener('click',clearCar);
+    document.getElementById('deleteCar').addEventListener('click',()=>{if(!selectedId)return;if(!confirm('Bu modeli koleksiyondan silmek istiyor musun?'))return;D.cars=D.cars.filter(x=>x.id!==selectedId);saveData();clearCar();updateStats()});
+
+    const renderCases=()=>{document.getElementById('caseManager').innerHTML=D.cases.map(c=>`<div class="case-admin-row"><strong>CASE ${esc(c)}</strong><span>${D.cars.filter(x=>x.case===c).length} model</span><button type="button" data-remove-case="${esc(c)}" aria-label="Koli sil">×</button></div>`).join('')};
+    document.getElementById('addCase').addEventListener('click',()=>{const v=document.getElementById('newCaseInput').value.trim().toUpperCase();if(!v||D.cases.includes(v))return;D.cases.push(v);D.cases.sort();saveData();document.getElementById('newCaseInput').value='';document.getElementById('carCase').innerHTML='<option value="">Belirtilmedi</option>'+D.cases.map(x=>`<option value="${esc(x)}">CASE ${esc(x)}</option>`).join('');renderCases();updateStats()});
+    document.getElementById('caseManager').addEventListener('click',e=>{const b=e.target.closest('[data-remove-case]');if(!b)return;const c=b.dataset.removeCase;if(D.cars.some(x=>x.case===c)&&!confirm(`CASE ${c} içindeki modellerin koli bilgisini boşaltıp koliyi silmek istiyor musun?`))return;D.cars.forEach(x=>{if(x.case===c)x.case=''});D.cases=D.cases.filter(x=>x!==c);saveData();renderCases();renderCarList();updateStats()});
+
+    let selectedBlog='';
+    const renderBlogs=()=>{document.getElementById('blogList').innerHTML=D.blog.map(b=>`<button type="button" class="admin-list-item ${selectedBlog===b.id?'active':''}" data-blog-id="${esc(b.id)}"><span class="admin-thumb blog-thumb">${esc((b.category||'B').slice(0,3))}</span><span><strong>${esc(b.title)}</strong><small>${esc(b.category||'BLOG')}</small></span><b>›</b></button>`).join('')};
+    const loadBlog=id=>{const b=D.blog.find(x=>x.id===id);if(!b)return;selectedBlog=id;document.getElementById('blogId').value=b.id;document.getElementById('blogTitle').value=b.title||'';document.getElementById('blogCategory').value=b.category||'';document.getElementById('blogDate').value=b.date||'';document.getElementById('blogRead').value=b.read||'';document.getElementById('blogHero').value=b.hero||'';document.getElementById('blogText').value=b.text||'';renderBlogs()};
+    const clearBlog=()=>{selectedBlog='';document.getElementById('blogForm').reset();document.getElementById('blogId').value='';renderBlogs()};
+    document.getElementById('blogList').addEventListener('click',e=>{const b=e.target.closest('[data-blog-id]');if(b)loadBlog(b.dataset.blogId)});document.getElementById('newBlog').addEventListener('click',clearBlog);document.getElementById('clearBlog').addEventListener('click',clearBlog);
+    document.getElementById('deleteBlog').addEventListener('click',()=>{if(!selectedBlog)return;if(!confirm('Bu blog yazısını silmek istiyor musun?'))return;D.blog=D.blog.filter(x=>x.id!==selectedBlog);saveData();clearBlog();updateStats()});
+    document.getElementById('blogForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('blogTitle').value.trim();if(!title)return;const id=document.getElementById('blogId').value.trim()||`${slugify(title)}-${Date.now().toString(36)}`;const item={id,title,category:document.getElementById('blogCategory').value.trim(),date:document.getElementById('blogDate').value||new Date().toISOString().slice(0,10),read:document.getElementById('blogRead').value.trim()||'4 dk',hero:document.getElementById('blogHero').value.trim(),text:document.getElementById('blogText').value.trim()};const old=D.blog.find(x=>x.id===id);if(old)Object.assign(old,item);else D.blog.unshift(item);saveData();selectedBlog=id;renderBlogs();updateStats();loadBlog(id);alert('Blog yazısı kaydedildi.')});
+
+    const renderShipments=()=>{document.getElementById('shipmentManager').innerHTML=(D.shipments||[]).map((s,i)=>`<div class="shipment-admin-card"><div class="shipment-admin-head"><input data-ship-store="${i}" value="${esc(s.store)}"><select data-ship-tone="${i}"><option ${s.tone==='blue'?'selected':''}>blue</option><option ${s.tone==='red'?'selected':''}>red</option><option ${s.tone==='orange'?'selected':''}>orange</option><option ${s.tone==='green'?'selected':''}>green</option><option ${s.tone==='purple'?'selected':''}>purple</option></select><button class="btn btn-secondary" data-save-ship="${i}">Kaydet</button><button class="admin-danger" data-remove-ship="${i}">Sil</button></div><textarea data-ship-items="${i}" rows="3">${esc((s.items||[]).join('\n'))}</textarea></div>`).join('');};
+    document.getElementById('shipmentManager').addEventListener('click',e=>{const save=e.target.closest('[data-save-ship]');const del=e.target.closest('[data-remove-ship]');if(save){const i=Number(save.dataset.saveShip),s=D.shipments[i];s.store=document.querySelector(`[data-ship-store="${i}"]`).value.trim();s.tone=document.querySelector(`[data-ship-tone="${i}"]`).value;s.items=document.querySelector(`[data-ship-items="${i}"]`).value.split('\n').map(x=>x.trim()).filter(Boolean);saveData();renderShipments();alert('Sevkiyat bilgisi kaydedildi.')}if(del){const i=Number(del.dataset.removeShip);D.shipments.splice(i,1);saveData();renderShipments();updateStats()}});
+
+    document.getElementById('adminLogout').addEventListener('click',()=>{remove(AUTH_KEY);location.reload()});
+    document.getElementById('resetData').addEventListener('click',()=>{if(!confirm('Bu tarayıcıdaki tüm admin değişiklikleri silinsin ve başlangıç verilerine dönülsün mü?'))return;remove(DATA_KEY);location.reload()});
+    document.getElementById('exportData').addEventListener('click',()=>{const payload='window.HW_DATA = '+JSON.stringify(fresh(),null,2)+';\n';const blob=new Blob([payload],{type:'application/javascript;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.js';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)});
+    updateStats();renderCarList();renderCases();renderBlogs();renderShipments();clearCar();
+  }
+
+  const p=location.pathname.split('/').pop()||'index.html';
+  if(p==='index.html')home(); else if(p==='koli.html')cases(); else if(p==='blog.html')blog(); else if(p==='sevkiyat.html')shipments(); else if(p==='admin.html')admin(); else if(p==='car.html')detail(); else home();
+})();
