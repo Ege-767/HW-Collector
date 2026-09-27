@@ -153,5 +153,5 @@
   }
 
   const p=location.pathname.split('/').pop()||'index.html';
-  if(p==='index.html')home(); else if(p==='koli.html')cases(); else if(p==='blog.html')blog(); else if(p==='sevkiyat.html')shipments(); else if(p==='iletisim.html')contact(); else if(p==='admin.html')admin(); else if(p==='car.html')detail(); else home();
+  if(p==='index.html')home(); else if(p==='koli.html')cases(); else if(p==='blog.html')blog(); else if(p==='sevkiyat.html')shipments(); else if(p==='admin.html')admin(); else if(p==='car.html')detail(); else home();
 })();
